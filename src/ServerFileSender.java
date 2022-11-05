@@ -3,38 +3,37 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class ServerFileSender {
-        public static void main(String[] args) throws IOException {
 
-            FileInputStream fileInputStream=new FileInputStream("kubuntu.torrent");
-            DataInputStream dataInputStream=new DataInputStream(fileInputStream);
+        private static int port=6060;
+        private static ServerSocket serverListener;
 
-            byte[] buffer=new byte[dataInputStream.available()];
+        private static void ServerSocketInitializer(){
             try {
-
-                dataInputStream.readFully(buffer);
-
-            }catch (IOException e) {throw new RuntimeException(e);}
-
-            ServerSocket serverListener;
-            try {
-                serverListener=new ServerSocket(6060);
-            } catch (IOException e) {throw new RuntimeException(e);}
-            boolean flag=true;
-            while(flag) {
-                Socket clientSocket=null;
-                try {
-                    clientSocket = serverListener.accept();
-                } catch (IOException e) {e.printStackTrace();}
-
-                assert clientSocket != null;
-                DataOutputStream dataOutputStream=new DataOutputStream(clientSocket.getOutputStream());
-                dataOutputStream.write(buffer);
-                dataOutputStream.flush();
-
-                clientSocket.close();
-                dataOutputStream.close();
-            }
-
-
+                serverListener=new ServerSocket(port);
+            } catch (IOException e) {System.out.println("errore assegnazione socket");}
         }
+
+        private static BufferedReader initializeReader(Socket socket){
+            try {
+                InputStreamReader inputStreamReader=new InputStreamReader(socket.getInputStream());
+                BufferedReader bufferedReader=new BufferedReader(inputStreamReader);
+                return bufferedReader;
+
+            } catch (IOException e) {System.out.println("errore inputStreamReader"); return null;}
+        }
+
+        public static void main(String[] args) throws IOException {
+            ServerSocketInitializer();
+            boolean flag=true;
+            while(flag){
+                Socket clientSocket=serverListener.accept();
+                BufferedReader bufferedReader=initializeReader(clientSocket);
+                String requestedFile=bufferedReader.readLine();
+
+                Thread RequestSolverThread=new Thread(new FileSender(requestedFile,clientSocket));
+                RequestSolverThread.start();
+
+            }
+        }
+
 }
