@@ -1,0 +1,7 @@
+solo un file di testo che deve passare attraverso socket tcp in java
+
+
+
+
+ciaoooo
+
