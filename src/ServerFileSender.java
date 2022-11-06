@@ -22,13 +22,14 @@ public class ServerFileSender {
             } catch (IOException e) {System.out.println("errore inputStreamReader"); return null;}
         }
 
-        public static void main(String[] args) throws IOException {
+        public static void main(String[] args) throws Exception {
             ServerSocketInitializer();
             boolean flag=true;
             while(flag){
                 Socket clientSocket=serverListener.accept();
                 BufferedReader bufferedReader=initializeReader(clientSocket);
                 String requestedFile=bufferedReader.readLine();
+
 
                 Thread RequestSolverThread=new Thread(new FileSender(requestedFile,clientSocket));
                 RequestSolverThread.start();

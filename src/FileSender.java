@@ -1,26 +1,28 @@
 import java.io.*;
 import java.lang.management.GarbageCollectorMXBean;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 
 public class FileSender extends Thread{
     private String requestedFile;
     private byte[] ThreadBuffer;
+    private ByteBuffer byteBuffer;
     private Socket clientSocket;
-    private DataOutputStream dataOutputStream;
-    private String esito;
+    private String esito="   ";
 
     private void sendStringtoSocket(Socket socket,String messaggio){
+        if(clientSocket.isClosed()){
+            System.out.println("SOCKET CHIUSA");
+            return;
+        }
         try {
             OutputStreamWriter outputStreamWriter=new OutputStreamWriter(socket.getOutputStream());
             BufferedWriter bufferedWriter=new BufferedWriter(outputStreamWriter);
             PrintWriter printWriter=new PrintWriter(bufferedWriter,true);
 
             printWriter.println(messaggio);
-
-            dataOutputStream.close();
-            bufferedWriter.close();
-            printWriter.close();
-        } catch (IOException e) {System.out.println("errore sendStringtoSocket");}
+        } catch (IOException e) {System.out.println("errore sendStringtoSocket");
+                                    e.printStackTrace();}
     }
 
     private void RequestedFileOpener(){
@@ -31,47 +33,61 @@ public class FileSender extends Thread{
             dataInputStream=new DataInputStream(fileInputStream);
             this.ThreadBuffer=new byte[dataInputStream.available()];
             dataInputStream.readFully(this.ThreadBuffer);
+            System.out.println(this.ThreadBuffer);
 
             fileInputStream.close();
-            dataInputStream.close();
+
         }catch(FileNotFoundException e){
             System.out.println("file non trovato");
             this.esito="/nf";
         }catch (IOException e) {System.out.println("errore nella creazione del buffer");}
     }
 
-    private void SendFile(){
+    private void SendFile() {
         if(this.esito.compareTo("/nf")==0){
             this.sendStringtoSocket(this.clientSocket,"File non trovato");
+            try {
+                this.clientSocket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }else {
             try {
-                this.dataOutputStream = new DataOutputStream(this.clientSocket.getOutputStream());
-                this.dataOutputStream.write(this.ThreadBuffer);
-                this.dataOutputStream.flush();
+                DataOutputStream dataOutputStream = new DataOutputStream(this.clientSocket.getOutputStream());
+                dataOutputStream.write(this.ThreadBuffer);
+                dataOutputStream.flush();
             } catch (IOException e) {
                 System.out.println("errore SendFile");
             }
         }
     }
     FileSender(String request,Socket client){
+        System.out.println("richiesto file: "+request);
         this.requestedFile=request;
         this.clientSocket=client;
+        if(this.clientSocket.isClosed()){
+            System.out.println("SOCKET CHIUSA 1");
+        }
+
     }
-    private void closeAll(){
-        try {
-            this.dataOutputStream.close();
-        } catch (IOException e) {System.out.println("errore chiusura dataOutputStream");}
-        try {
-            this.clientSocket.close();
-        } catch (IOException e) {System.out.println("errore chiusura Socket");}
-    }
+
 
 
     @Override
     public void run(){
         this.RequestedFileOpener();
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         this.SendFile();
-        this.closeAll();
+        //this.closeAll();
+        try {
+            this.clientSocket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }
